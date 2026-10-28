@@ -1,0 +1,56 @@
+[
+  {
+    "app": "camera",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/fd/d6/b2/fdd6b24d-071d-b41d-045c-b72aa99cf9fa/cameraCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/camera/id1584216193?uo=4"
+  },
+  {
+    "app": "photos",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/72/6e/79/726e7943-4a7d-091d-3c55-1d46477cdf08/photosCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/photos/id1584215428?uo=4"
+  },
+  {
+    "app": "notes",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/bc/b1/1c/bcb11c9d-ea61-089f-3b84-0f8911dd175d/notesCalistoga-0-0-1x_U007epad-0-1-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/notes/id1110145109?uo=4"
+  },
+  {
+    "app": "spotify",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/8b/f2/6a/8bf26ab9-3ced-cb5c-a2b3-19f65e7f5cc6/AppIcon-0-0-1x_U007epad-0-1-0-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/spotify-music-and-podcasts/id324684580?uo=4"
+  },
+  {
+    "app": "messages",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/fc/8d/32/fc8d32a0-86a7-83d8-7045-57b4b3e71a0b/messagesCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/messages/id1146560473?uo=4"
+  },
+  {
+    "app": "safari",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/9b/4a/12/9b4a12c2-7ea9-9e38-4d4f-f1342b310519/safariCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/safari/id1146562112?uo=4"
+  },
+  {
+    "app": "clock",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/c0/8e/d2/c08ed244-21b1-9bce-7199-2417712ae123/clockCalistoga-0-0-1x_U007epad-0-1-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/clock/id1584215688?uo=4"
+  },
+  {
+    "app": "contacts",
+    "source": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/db/00/f5/db00f5fc-c446-f84c-29b9-1a46bb028ca6/contactsCalistoga-0-0-1x_U007epad-0-1-0-0-85-220.png/512x512bb.jpg",
+    "store": "https://apps.apple.com/us/app/contacts/id1069512615?uo=4"
+  },
+  {
+    "app": "settings",
+    "source": "https://support.apple.com/guide/iphone/find-settings-iph079e1fe9d/ios"
+  },
+  {
+    "app": "kkt",
+    "source": "https://apps.apple.com/us/app/kakaotalk-messenger/id362057947",
+    "publisher": "Kakao Corp."
+  },
+  {
+    "app": "notification-sound",
+    "source": "https://soundinstants.com/sound/kakaotalk",
+    "note": "Third-party sample, not official Kakao distribution"
+  }
+]
