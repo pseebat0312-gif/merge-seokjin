@@ -18,7 +18,7 @@ function audioInit(){
   audio.musicGain=audio.context.createGain();audio.musicGain.gain.value=Number($('musicVolume').value);audio.musicGain.connect(audio.context.destination);
   audio.sfxGain=audio.context.createGain();audio.sfxGain.gain.value=Number($('sfxVolume').value);audio.sfxGain.connect(audio.context.destination);
  }
- audio.context.resume().catch(()=>{});
+ if(!document.hidden && !pageAudioPaused)audio.context.resume().catch(()=>{});
  if(!audio.loading){
   const decode=async path=>{const r=await fetch(path);if(!r.ok)throw Error('音频加载失败');return audio.context.decodeAudioData(await r.arrayBuffer());};
   audio.loading=Promise.allSettled([
@@ -178,7 +178,30 @@ $('againBtn').onclick=()=>{stopCelebration();$('result').close();audioInit();new
 for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.dataset.close).close();
 $('welcome').addEventListener('cancel',e=>e.preventDefault());$('result').addEventListener('cancel',e=>e.preventDefault());
 $('nickname').value=name;$('welcome').showModal();
-document.addEventListener('visibilitychange',()=>{last=performance.now();});
+// Suspend the Web Audio clock when the page is backgrounded. Resume at the
+// same playback position on return, rather than restarting the BGM buffer.
+let pageAudioPaused = document.hidden;
+function syncPageAudio(){
+ last=performance.now();
+ if(!audio.context)return;
+ if(pageAudioPaused || document.hidden){
+  audio.context.suspend().catch(()=>{});
+ }else{
+  audio.context.resume().catch(()=>{});
+ }
+}
+document.addEventListener('visibilitychange',()=>{
+ pageAudioPaused=document.hidden;
+ syncPageAudio();
+});
+window.addEventListener('pagehide',()=>{
+ pageAudioPaused=true;
+ syncPageAudio();
+});
+window.addEventListener('pageshow',()=>{
+ pageAudioPaused=document.hidden;
+ syncPageAudio();
+});
 
 // Poll while the leaderboard is visible; no paid realtime channel needed.
 setInterval(()=>{if($('ranking').open && !document.hidden)refreshRanks();},7000);
