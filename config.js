@@ -1,11 +1,10 @@
-// 仅填写 Supabase 项目 URL 和 publishable key（或 legacy anon public key）。
-supabaseUrl: 'https://saiaakwdywmngwpwgdrd.supabase.co',
-supabaseKey: 'sb_publishable_eJfYqJiDXnXaX21nTpNtaw_QiV8Lgzc',
-// 绝对不要填写 service_role、secret key、数据库密码。
+
+ // Supabase 数据库配置
 window.GAME_CONFIG = {
   title: '合成大珍猪',
-  supabaseUrl: '',
-  supabaseKey: '',
+  supabaseUrl: 'https://saiaakwdywmngwpwgdrd.supabase.co',
+  supabaseKey: 'sb_publishable_eJfYqJiDXnXaX21nTpNtaw_QiV8Lgzc',
   musicVolume: 0.12,
   sfxVolume: 0.95
 };
+
