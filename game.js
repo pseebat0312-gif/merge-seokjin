@@ -5,6 +5,7 @@ const canvas=$('game'),ctx=canvas.getContext('2d');
 const images=R.map((_,i)=>{const im=new Image(); im.src=`assets/images/${String(i+1).padStart(2,'0')}.jpg`;return im;});
 let stored={};try{stored=JSON.parse(localStorage.getItem('merge-player')||'{}');}catch{}
 let name=stored.name||'',best=stored.best||0,bestBefore=best,score=0,balls=[],particles=[],next=0,current=0,aim=W/2;
+let cloudReady=false;
 let achieved=false, celebrationActive=false, celebrationToken=0;
 let running=false,started=false,cooldown=0,danger=0,rankBefore=null,celebrated=false,round=0,elapsed=0;
 const save=()=>{try{localStorage.setItem('merge-player',JSON.stringify({name,best}));}catch{toast('浏览器存储不可用，记录可能无法保留');}};
@@ -124,7 +125,14 @@ function updateScore(){ $('score').textContent=score;$('best').textContent=best;
 function newRound(){
  achieved=false;round++;balls=[];particles=[];score=0;bestBefore=best;current=rand();next=rand();elapsed=0;cooldown=.25;danger=0;rankBefore=null;celebrated=false;running=true;started=true;aim=W/2;
  $('nextImage').src=images[next].src;$('danger').style.display='none';updateScore();
- const id=round;if(Cloud.enabled)Cloud.board().then(b=>{if(id===round){rankBefore=b.me?.rank??null;best=Math.max(best,b.me?.best||0);bestBefore=Math.max(bestBefore,b.me?.best||0);save();updateScore();}}).catch(()=>{$('cloudStatus').textContent='本地模式 · 云端暂不可用';});
+ const id=round;if(Cloud.enabled&&cloudReady)refreshCloudBoard(id);
+}
+function cloudFailure(e){cloudReady=false;$('cloudStatus').textContent='本地模式 · 云端暂不可用';$('cloudStatus').title=e?.message||'连接失败';}
+async function refreshCloudBoard(id){
+ try{const b=await Cloud.board();cloudReady=true;$('cloudStatus').textContent='云端已连接';$('cloudStatus').title='';
+ if(id===round){rankBefore=b.me?.rank??null;best=Math.max(best,b.me?.best||0);bestBefore=Math.max(bestBefore,b.me?.best||0);save();updateScore();}
+ }catch(e){cloudFailure(e);}
+
 }
 function ball(level,x,y){return{level,x,y,vx:0,vy:0,r:R[level],angle:0,age:0,contact:false};}
 function drop(){if(!running||cooldown>0||document.querySelector('dialog[open]'))return;audioInit();balls.push(ball(current,Math.max(R[current],Math.min(W-R[current],aim)),70));current=next;next=rand();$('nextImage').src=images[next].src;cooldown=.45;}
@@ -194,7 +202,7 @@ async function syncScore(id){
 function finish(){if(!running)return;running=false;save();$('finalScore').textContent=score;$('resultTitle').textContent=score>bestBefore?'新纪录！太棒啦 ✦':'这一局，快乐满分';$('resultDetail').textContent=`个人最高 ${best} 分${score>bestBefore?' · 提升 '+(score-bestBefore)+' 分':''}`;$('syncStatus').textContent=Cloud.enabled?'':'本地成绩已保存；配置云端后即可参与共享排行。';$('result').showModal();if(score>bestBefore)celebrate();
  if(Cloud.enabled){pendingScore=Math.max(pendingScore,score);try{localStorage.setItem('merge-pending',pendingScore);}catch{}syncScore(round);}}
 async function showRanks(){if(!$('ranking').open)$('ranking').showModal();$('rankList').replaceChildren();$('myRank').textContent=Cloud.enabled?'正在加载…':'当前为本地模式，尚未连接共享排行榜。';if(!Cloud.enabled)return;
- try{const b=await Cloud.board();$('myRank').textContent=b.me?`我的排名：第 ${b.me.rank} 名 · ${b.me.best} 分`:'完成一局即可参与排名';for(const p of b.top){const row=document.createElement('div');row.className='rankrow'+(p.id===Cloud.id?' me':'');[p.rank,p.nickname,p.best+' 分'].forEach(v=>{const el=document.createElement('span');el.textContent=v;row.append(el);});$('rankList').append(row);}}
+ try{const b=await Cloud.board();cloudReady=true;$('cloudStatus').textContent='云端已连接';$('cloudStatus').title='';$('myRank').textContent=b.me?`我的排名：第 ${b.me.rank} 名 · ${b.me.best} 分`:'完成一局即可参与排名';for(const p of b.top){const row=document.createElement('div');row.className='rankrow'+(p.id===Cloud.id?' me':'');[p.rank,p.nickname,p.best+' 分'].forEach(v=>{const el=document.createElement('span');el.textContent=v;row.append(el);});$('rankList').append(row);}}
  catch(e){$('myRank').textContent='暂时无法获取排名：'+e.message;}}
 $('nameForm').onsubmit=e=>{
  e.preventDefault();const n=$('nickname').value.trim();if(!n)return;
@@ -202,7 +210,7 @@ $('nameForm').onsubmit=e=>{
  // Start locally immediately. Database quotas, timeouts and auth never gate play.
  $('welcome').close();newRound();
  if(Cloud.enabled){$('cloudStatus').textContent='游戏已开始 · 云端连接中';
-  Cloud.profile(name).then(()=>{$('cloudStatus').textContent='云端已连接';}).catch(()=>{$('cloudStatus').textContent='本地模式 · 云端暂不可用';});
+  const id=round;Cloud.profile(name).then(()=>{cloudReady=true;return refreshCloudBoard(id);}).catch(cloudFailure);
  }
 };
 $('settingsBtn').onclick=()=>{$('settings').showModal();audioInit();};$('rankBtn').onclick=showRanks;$('refreshRank').onclick=showRanks;
