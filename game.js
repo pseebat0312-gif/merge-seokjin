@@ -27,7 +27,7 @@ function nativeInit(){
   nativeAudio.music=$('bgmPlayer');nativeAudio.music.volume=Number($('musicVolume').value);nativeAudio.music.loop=true;
   nativeAudio.celebration=nativeNode('assets/audio/celebration.mp3',true);
   nativeAudio.celebration.volume=Number($('sfxVolume').value);
-  for(let i=0;i<14;i++)nativeAudio.voices.push(nativeNode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3`));
+  for(let i=0;i<14;i++)nativeAudio.voices.push(nativeNode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3?v=6-sound`));
   nativeAudio.music.addEventListener('timeupdate',nativeStatus);
   nativeAudio.music.addEventListener('error',()=>mediaError('背景音乐',Error('音频无法加载')));
  }
@@ -78,7 +78,7 @@ function audioInit(){
    const jobs=[];
    if(!audio.music)jobs.push(decode('assets/audio/bgm.mp3').then(buffer=>{audio.music=buffer;const source=audio.context.createBufferSource();source.buffer=buffer;source.loop=true;source.connect(audio.musicGain);source.start();audio.musicSource=source;}));
    if(!audio.celebrationBuffer)jobs.push(decode('assets/audio/celebration.mp3').then(buffer=>{audio.celebrationBuffer=buffer;if(celebrationActive)startCelebrationAudio();}));
-   for(let i=0;i<14;i++)if(!audio.buffers[i])jobs.push(decode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3`).then(buffer=>{audio.buffers[i]=buffer;flushMergeSounds();}));
+   for(let i=0;i<14;i++)if(!audio.buffers[i])jobs.push(decode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3?v=6-sound`).then(buffer=>{audio.buffers[i]=buffer;flushMergeSounds();}));
    if(jobs.length){
     $('audioStatus').textContent='正在加载你的音效…';
     audio.loading=Promise.allSettled(jobs).then(results=>{
