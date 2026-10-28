@@ -12,19 +12,39 @@ const toast=t=>{$('toast').textContent=t;$('toast').style.display='block';clearT
 const rand=()=>Math.floor(Math.random()*4);
 const audio={context:null,music:null,musicGain:null,sfxGain:null,buffers:[],musicSource:null,loading:null,celebrationBuffer:null,celebrationSource:null};
 function audioInit(){
- if(!audio.context){
-  audio.context=new (window.AudioContext||window.webkitAudioContext)();
-  audio.musicGain=audio.context.createGain();audio.musicGain.gain.value=Number($('musicVolume').value);audio.musicGain.connect(audio.context.destination);
-  audio.sfxGain=audio.context.createGain();audio.sfxGain.gain.value=Number($('sfxVolume').value);audio.sfxGain.connect(audio.context.destination);
- }
- audio.context.resume().catch(()=>{});
- if(!audio.loading){
-  const decode=async path=>{const r=await fetch(path);if(!r.ok)throw Error('音频加载失败');return audio.context.decodeAudioData(await r.arrayBuffer());};
-  audio.loading=Promise.allSettled([
-   decode('assets/audio/bgm.mp3').then(buffer=>{audio.music=buffer;const s=audio.context.createBufferSource();s.buffer=buffer;s.loop=true;s.connect(audio.musicGain);s.start();audio.musicSource=s;}),
-   decode('assets/audio/celebration.mp3').then(b=>{audio.celebrationBuffer=b;if(celebrationActive)startCelebrationAudio();}),
-   ...Array.from({length:14},(_,i)=>decode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3`).then(b=>audio.buffers.push(b)))
-  ]).then(r=>{if(r.some(x=>x.status==='rejected'))toast('部分声音未加载，刷新页面可重试');});
+ try {
+  if(!audio.context){
+   audio.context=new (window.AudioContext||window.webkitAudioContext)();
+   audio.musicGain=audio.context.createGain();audio.musicGain.gain.value=Number($('musicVolume').value);audio.musicGain.connect(audio.context.destination);
+   audio.sfxGain=audio.context.createGain();audio.sfxGain.gain.value=Number($('sfxVolume').value);audio.sfxGain.connect(audio.context.destination);
+   audio.context.onstatechange=()=>{if(audio.context.state==='running')flushMergeSounds();};
+  }
+  audio.context.resume().then(flushMergeSounds).catch(()=>{$('audioStatus').textContent='请点击“试听合成音效”开启声音';});
+  if(!audio.loading&&Date.now()>(audio.retryAfter||0)){
+   const decode=async path=>{const r=await fetch(path,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error(path+' 加载失败');return audio.context.decodeAudioData(await r.arrayBuffer());};
+   const jobs=[];
+   if(!audio.music)jobs.push(decode('assets/audio/bgm.mp3').then(buffer=>{audio.music=buffer;const source=audio.context.createBufferSource();source.buffer=buffer;source.loop=true;source.connect(audio.musicGain);source.start();audio.musicSource=source;}));
+   if(!audio.celebrationBuffer)jobs.push(decode('assets/audio/celebration.mp3').then(buffer=>{audio.celebrationBuffer=buffer;if(celebrationActive)startCelebrationAudio();}));
+   for(let i=0;i<14;i++)if(!audio.buffers[i])jobs.push(decode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3`).then(buffer=>{audio.buffers[i]=buffer;flushMergeSounds();}));
+   if(jobs.length){
+    $('audioStatus').textContent='正在加载你的音效…';
+    audio.loading=Promise.allSettled(jobs).then(results=>{
+     const count=audio.buffers.filter(Boolean).length;
+     $('audioStatus').textContent=`合成音效已加载 ${count}/14 段`;
+     if(results.some(r=>r.status==='rejected')){$('audioStatus').textContent+=' · 部分声音加载失败，点击试听可重试';toast('部分声音加载失败，请在声音设置中点击试听重试');audio.retryAfter=Date.now()+10000;}
+    }).finally(()=>{audio.loading=null;});
+   }
+  }
+ }catch(e){$('audioStatus').textContent='声音初始化失败，点击试听重试';}
+}
+// One event per actual merge. Keep events while buffers load or the browser suspends audio.
+let mergeSoundQueue=0;
+function flushMergeSounds(){
+ if(!audio.context||audio.context.state!=='running')return;
+ const ready=audio.buffers.filter(Boolean);if(!ready.length)return;
+ let offset=0;
+ while(mergeSoundQueue>0){
+  const source=audio.context.createBufferSource();source.buffer=ready[Math.floor(Math.random()*ready.length)];source.connect(audio.sfxGain);source.onended=()=>source.disconnect();source.start(audio.context.currentTime+offset);offset+=.035;mergeSoundQueue--;
  }
 }
 function startCelebrationAudio(){
@@ -36,7 +56,8 @@ function stopCelebration(){
  if(audio.celebrationSource){audio.celebrationSource.stop();audio.celebrationSource.disconnect();audio.celebrationSource=null;}
  $('confetti').style.display='none';
 }
-function playMerge(){if(!audio.buffers.length)return;const s=audio.context.createBufferSource();s.buffer=audio.buffers[Math.floor(Math.random()*audio.buffers.length)];s.connect(audio.sfxGain);s.onended=()=>s.disconnect();s.start();}
+function playMerge(){mergeSoundQueue++;flushMergeSounds();}
+$('testSfx').onclick=()=>{audio.retryAfter=0;audioInit();playMerge();};
 $('musicVolume').value=cfg.musicVolume;$('sfxVolume').value=cfg.sfxVolume;
 $('musicVolume').oninput=e=>{if(audio.musicGain)audio.musicGain.gain.value=+e.target.value;};
 $('sfxVolume').oninput=e=>{if(audio.sfxGain)audio.sfxGain.gain.value=+e.target.value;};
@@ -49,7 +70,7 @@ function updateScore(){ $('score').textContent=score;$('best').textContent=best;
 function newRound(){
  achieved=false;round++;balls=[];particles=[];score=0;bestBefore=best;current=rand();next=rand();elapsed=0;cooldown=.25;danger=0;rankBefore=null;celebrated=false;running=true;started=true;aim=W/2;
  $('nextImage').src=images[next].src;$('danger').style.display='none';updateScore();
- const id=round;if(Cloud.enabled)Cloud.board().then(b=>{if(id===round){rankBefore=b.me?.rank??null;best=Math.max(best,b.me?.best||0);bestBefore=Math.max(bestBefore,b.me?.best||0);save();updateScore();}}).catch(()=>{});
+ const id=round;if(Cloud.enabled)Cloud.board().then(b=>{if(id===round){rankBefore=b.me?.rank??null;best=Math.max(best,b.me?.best||0);bestBefore=Math.max(bestBefore,b.me?.best||0);save();updateScore();}}).catch(()=>{$('cloudStatus').textContent='本地模式 · 云端暂不可用';});
 }
 function ball(level,x,y){return{level,x,y,vx:0,vy:0,r:R[level],angle:0,age:0,contact:false};}
 function drop(){if(!running||cooldown>0||document.querySelector('dialog[open]'))return;audioInit();balls.push(ball(current,Math.max(R[current],Math.min(W-R[current],aim)),70));current=next;next=rand();$('nextImage').src=images[next].src;cooldown=.45;}
@@ -114,16 +135,22 @@ async function syncScore(id){
  $('retrySync').hidden=true;$('syncStatus').textContent='正在同步成绩…';
  try{await Cloud.profile(name);const b=await Cloud.submit(pendingScore);pendingScore=0;localStorage.removeItem('merge-pending');if(id!==round)return;$('cloudStatus').textContent='云端已连接';$('syncStatus').textContent=`成绩已保存 · 当前第 ${b.rank} 名`;
  if(rankBefore!==null&&b.rank<rankBefore){$('resultTitle').textContent='排名进步啦！';$('resultDetail').textContent=`第 ${rankBefore} 名 → 第 ${b.rank} 名 · 个人最高 ${best} 分`;celebrate();}
- }catch(e){if(id!==round)return;$('syncStatus').textContent='成绩已保存在此浏览器，云端同步失败：'+e.message;$('retrySync').hidden=false;}
+ }catch(e){if(id!==round)return;$('cloudStatus').textContent='本地模式 · 云端暂不可用';$('syncStatus').textContent='成绩已保存在此浏览器，云端同步失败：'+e.message;$('retrySync').hidden=false;}
 }
 function finish(){if(!running)return;running=false;save();$('finalScore').textContent=score;$('resultTitle').textContent=score>bestBefore?'新纪录！太棒啦 ✦':'这一局，快乐满分';$('resultDetail').textContent=`个人最高 ${best} 分${score>bestBefore?' · 提升 '+(score-bestBefore)+' 分':''}`;$('syncStatus').textContent=Cloud.enabled?'':'本地成绩已保存；配置云端后即可参与共享排行。';$('result').showModal();if(score>bestBefore)celebrate();
  if(Cloud.enabled){pendingScore=Math.max(pendingScore,score);try{localStorage.setItem('merge-pending',pendingScore);}catch{}syncScore(round);}}
 async function showRanks(){if(!$('ranking').open)$('ranking').showModal();$('rankList').replaceChildren();$('myRank').textContent=Cloud.enabled?'正在加载…':'当前为本地模式，尚未连接共享排行榜。';if(!Cloud.enabled)return;
  try{const b=await Cloud.board();$('myRank').textContent=b.me?`我的排名：第 ${b.me.rank} 名 · ${b.me.best} 分`:'完成一局即可参与排名';for(const p of b.top){const row=document.createElement('div');row.className='rankrow'+(p.id===Cloud.id?' me':'');[p.rank,p.nickname,p.best+' 分'].forEach(v=>{const el=document.createElement('span');el.textContent=v;row.append(el);});$('rankList').append(row);}}
  catch(e){$('myRank').textContent='暂时无法获取排名：'+e.message;}}
-$('nameForm').onsubmit=async e=>{e.preventDefault();const n=$('nickname').value.trim();if(!n)return;audioInit();name=n;save();$('playerName').textContent='你好，'+name;$('startBtn').disabled=true;
- if(Cloud.enabled){$('startStatus').textContent='正在连接排行榜…';try{await Cloud.profile(name);$('cloudStatus').textContent='云端已连接';}catch(e){$('cloudStatus').textContent='暂时离线';toast('暂时进入本地游戏：'+e.message);}}
- $('startBtn').disabled=false;$('welcome').close();newRound();};
+$('nameForm').onsubmit=e=>{
+ e.preventDefault();const n=$('nickname').value.trim();if(!n)return;
+ audioInit();name=n;save();$('playerName').textContent='你好，'+name;
+ // Start locally immediately. Database quotas, timeouts and auth never gate play.
+ $('welcome').close();newRound();
+ if(Cloud.enabled){$('cloudStatus').textContent='游戏已开始 · 云端连接中';
+  Cloud.profile(name).then(()=>{$('cloudStatus').textContent='云端已连接';}).catch(()=>{$('cloudStatus').textContent='本地模式 · 云端暂不可用';});
+ }
+};
 $('settingsBtn').onclick=()=>{$('settings').showModal();audioInit();};$('rankBtn').onclick=showRanks;$('refreshRank').onclick=showRanks;
 $('resultRank').onclick=showRanks;$('retrySync').onclick=()=>syncScore(round);
 $('restartBtn').onclick=()=>{if(running)$('confirmRestart').showModal();};$('finishBtn').onclick=()=>{$('confirmRestart').close();finish();};
