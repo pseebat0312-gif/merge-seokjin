@@ -1,0 +1,86 @@
+[
+  {
+    "file": "merge-01.mp3",
+    "source_start": 0,
+    "source_end": 2.078,
+    "duration": 2.078
+  },
+  {
+    "file": "merge-02.mp3",
+    "source_start": 4.347,
+    "source_end": 6.01,
+    "duration": 1.663
+  },
+  {
+    "file": "merge-03.mp3",
+    "source_start": 7.603,
+    "source_end": 9.428,
+    "duration": 1.825
+  },
+  {
+    "file": "merge-04.mp3",
+    "source_start": 12.172,
+    "source_end": 13.373,
+    "duration": 1.201
+  },
+  {
+    "file": "merge-05.mp3",
+    "source_start": 17.048,
+    "source_end": 19.078,
+    "duration": 2.03
+  },
+  {
+    "file": "merge-06.mp3",
+    "source_start": 23.852,
+    "source_end": 25.731,
+    "duration": 1.879
+  },
+  {
+    "file": "merge-07.mp3",
+    "source_start": 30.284,
+    "source_end": 31.804,
+    "duration": 1.521
+  },
+  {
+    "file": "merge-08.mp3",
+    "source_start": 37.435,
+    "source_end": 39.67,
+    "duration": 2.235
+  },
+  {
+    "file": "merge-09.mp3",
+    "source_start": 42.938,
+    "source_end": 44.512,
+    "duration": 1.573
+  },
+  {
+    "file": "merge-10.mp3",
+    "source_start": 47.606,
+    "source_end": 48.977,
+    "duration": 1.372
+  },
+  {
+    "file": "merge-11.mp3",
+    "source_start": 51.971,
+    "source_end": 53.445,
+    "duration": 1.474
+  },
+  {
+    "file": "merge-12.mp3",
+    "source_start": 59.378,
+    "source_end": 60.565,
+    "duration": 1.187
+  },
+  {
+    "file": "merge-13.mp3",
+    "source_start": 62.281,
+    "source_end": 63.812,
+    "duration": 1.531
+  },
+  {
+    "file": "merge-14.mp3",
+    "source_start": 64.742,
+    "source_end": 66.299,
+    "duration": 1.557
+  }
+]
