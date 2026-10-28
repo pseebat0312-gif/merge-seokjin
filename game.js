@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id), cfg=window.GAME_CONFIG;
-const W=430,H=540,R=[19,25,32,40,49,60,72,84,97,109,119,128,136], LINE=118;
+const W=430,H=500,R=[26,33,42,52,63,75,88,101,113,124,134,143,151], LINE=112;
 const canvas=$('game'),ctx=canvas.getContext('2d');
 canvas.width=W;canvas.height=H;
 const images=R.map((_,i)=>{const im=new Image(); im.src=`assets/images/${String(i+1).padStart(2,'0')}.jpg`;return im;});
@@ -64,9 +64,12 @@ async function flushCloudScore(){
   await Cloud.submit(target);
   lastCloudBest=Math.max(lastCloudBest,target);
   $('cloudStatus').textContent='云端已连接';
+  $('cloudStatus').title='最高分已同步：'+target;
   if($('ranking').open)await refreshRanks();
  }catch(e){
-  $('cloudStatus').textContent='同步待重试';
+  $('cloudStatus').textContent='云端同步失败';
+  $('cloudStatus').title=e.message;
+  if($('ranking').open)$('myRank').textContent='云端提交失败：'+e.message;
   console.warn('成绩同步失败',e);
  }finally{
   cloudBusy=false;
@@ -157,7 +160,7 @@ async function refreshRanks(){
  try{
   const b=await Cloud.board();
   $('rankList').replaceChildren();
-  $('myRank').textContent=b.me?`我的排名：第 ${b.me.rank} 名 · ${b.me.best} 分`:'尚未上榜';
+  $('myRank').textContent=b.me?`我的排名：第 ${b.me.rank} 名 · 云端最高 ${b.me.best} 分 · 本机最高 ${best} 分`:'尚未上榜（请确认匿名登录和 SQL 已配置）';
   for(const p of (b.top||[])){
    const row=document.createElement('div');row.className='rankrow'+(p.id===Cloud.id?' me':'');
    [p.rank,p.nickname,p.best+' 分'].forEach(v=>{const el=document.createElement('span');el.textContent=v;row.append(el);});
@@ -206,3 +209,12 @@ window.addEventListener('pageshow',()=>{
 // Poll while the leaderboard is visible; no paid realtime channel needed.
 setInterval(()=>{if($('ranking').open && !document.hidden)refreshRanks();},7000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && $('ranking').open)refreshRanks();});
+
+// Use the actual visual viewport: Threads and other in-app browsers have variable toolbars.
+function fitGameViewport(){
+ const vh=Math.max(320, Math.round(window.visualViewport?.height || window.innerHeight));
+ document.documentElement.style.setProperty('--game-vh',vh+'px');
+}
+fitGameViewport();
+window.addEventListener('resize',fitGameViewport);
+window.visualViewport?.addEventListener('resize',fitGameViewport);

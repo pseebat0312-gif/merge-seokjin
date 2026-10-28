@@ -22,3 +22,23 @@ footer button{padding:7px 9px;}
 .evolution{margin-top:5px;}
 @media(max-height:650px){.board{max-width:calc((100dvh - 153px) * 430 / 540);}header{min-height:30px;}h1{font-size:24px}.scores strong{font-size:20px}.scores{padding:4px 10px}}
 @media(min-width:700px){body{padding-top:12px;}main{max-width:430px}}
+
+/* Threads / in-app browser: prioritize full playable board in visible viewport. */
+html,body{margin:0;overscroll-behavior-y:none;}
+body{padding:4px 8px 6px;min-height:var(--game-vh,100dvh);}
+main{width:min(100%,430px);max-width:430px;}
+header{margin:0 0 3px;min-height:32px;}
+h1{font-size:clamp(22px,5vw,29px);line-height:1.05;}
+header button{padding:5px 9px;}
+.scores{padding:3px 9px;min-height:45px;}
+.scores strong{font-size:21px;}
+.scores button{padding:6px 9px;}
+.playerline{margin:3px 4px;}
+.board{width:100%;max-width:min(100%,calc((var(--game-vh,100dvh) - 149px) * 430 / 500));border-width:5px;margin:0 auto;border-radius:17px;}
+#game{width:100%;height:auto;aspect-ratio:430 / 500;}
+#danger{top:84px;}
+footer{margin:4px 0;font-size:9px;}
+footer button{padding:5px 8px;}
+.evolution{margin-top:2px;font-size:10px;}
+.evolution:not([open]){max-height:19px;}
+@media(max-height:600px){.board{max-width:min(100%,calc((var(--game-vh,100dvh) - 127px) * 430 / 500));}header{min-height:25px}h1{font-size:21px}.scores strong{font-size:18px}footer span{font-size:9px}}
