@@ -28,6 +28,18 @@ function audioInit(){
   ]).then(r=>{if(r.some(x=>x.status==='rejected'))toast('部分声音未加载，刷新页面可重试');});
  }
 }
+// Mobile browsers require audio to be unlocked during a real user gesture.
+// Run before buttons/dialog handlers, so the music starts without opening settings.
+function unlockMobileAudio(){
+ if(document.hidden || pageAudioPaused)return;
+ try{
+  if(!audio.context || audio.context.state!=='running')audioInit();
+ }catch(e){console.warn('音频启动暂时受限',e);}
+}
+document.addEventListener('pointerdown',unlockMobileAudio,{capture:true,passive:true});
+document.addEventListener('touchstart',unlockMobileAudio,{capture:true,passive:true});
+document.addEventListener('keydown',unlockMobileAudio,{capture:true});
+
 function startCelebrationAudio(){
  if(!celebrationActive||!audio.celebrationBuffer||audio.celebrationSource)return;
  const source=audio.context.createBufferSource();source.buffer=audio.celebrationBuffer;source.loop=true;source.connect(audio.sfxGain);source.start();audio.celebrationSource=source;
