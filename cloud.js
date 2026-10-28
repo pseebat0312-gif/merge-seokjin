@@ -10,7 +10,27 @@ window.Cloud = (() => {
       method: 'POST', headers: {'Content-Type':'application/json', apikey:cfg.supabaseKey,
         ...(token ? {Authorization:'Bearer '+token} : {})}, body:JSON.stringify(body), signal:AbortSignal.timeout(12000)
     });
-    const data = await response.json();
+    const raw = await response.text();
+let data = {};
+
+if (raw.trim()) {
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `服务器返回了无法解析的数据（HTTP ${response.status}）`
+    );
+  }
+}
+
+if (!response.ok) {
+  throw new Error(
+    data.msg ||
+    data.message ||
+    data.error_description ||
+    `请求失败（HTTP ${response.status}）`
+  );
+}
     if (!response.ok) throw new Error(data.msg || data.message || data.error_description || '连接失败');
     return data;
   }
