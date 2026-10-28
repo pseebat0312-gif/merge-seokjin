@@ -11,7 +11,59 @@ const save=()=>{try{localStorage.setItem('merge-player',JSON.stringify({name,bes
 const toast=t=>{$('toast').textContent=t;$('toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').style.display='none',4000);};
 const rand=()=>Math.floor(Math.random()*4);
 const audio={context:null,music:null,musicGain:null,sfxGain:null,buffers:[],musicSource:null,loading:null,celebrationBuffer:null,celebrationSource:null};
+// Native media playback offers an independent route when Web Audio is silent on a device.
+let nativeMode=true;
+const nativeAudio={music:null,celebration:null,voices:[],last:'等待点击开始',primed:false};
+function nativeNode(src,loop=false){const a=new Audio(src);a.preload='auto';a.loop=loop;a.setAttribute('playsinline','');return a;}
+function mediaError(label,e){nativeAudio.last=label+'未播放：'+(e?.name==='NotAllowedError'?'浏览器拦截，请点“开启声音／试听”':e?.message||'检查网络和媒体文件');nativeStatus();}
+function nativeStatus(){
+ if(!nativeMode)return;
+ const music=nativeAudio.music;
+ $('audioStatus').textContent=(music&&!music.paused?'背景音乐播放中 '+Math.floor(music.currentTime)+' 秒':'背景音乐未播放')+' · '+nativeAudio.last;
+}
+function nativeInit(){
+ if(!nativeAudio.music){
+  nativeAudio.music=$('bgmPlayer');nativeAudio.music.volume=Number($('musicVolume').value);nativeAudio.music.loop=true;
+  nativeAudio.celebration=nativeNode('assets/audio/celebration.mp3',true);
+  nativeAudio.celebration.volume=Number($('sfxVolume').value);
+  for(let i=0;i<14;i++)nativeAudio.voices.push(nativeNode(`assets/audio/merge-${String(i+1).padStart(2,'0')}.mp3`));
+  nativeAudio.music.addEventListener('timeupdate',nativeStatus);
+  nativeAudio.music.addEventListener('error',()=>mediaError('背景音乐',Error('音频无法加载')));
+ }
+ // Call play synchronously inside the start / touch gesture, not after a database request.
+ if(nativeAudio.music.paused)nativeAudio.music.play().then(nativeStatus).catch(e=>mediaError('背景音乐',e));
+ if(!nativeAudio.primed){
+  nativeAudio.primed=true;
+  for(const a of [...nativeAudio.voices,nativeAudio.celebration]){
+   a.muted=true;
+   a.play().then(()=>{if(!a.inUse){a.pause();a.currentTime=0;}a.muted=false;}).catch(()=>{a.muted=false;});
+  }
+ }
+ nativeStatus();
+}
+function nativeMerge(){
+ if(!nativeAudio.music)nativeInit();
+ const i=Math.floor(Math.random()*14),base=nativeAudio.voices[i];
+ // An overlapping merge gets its own source, so no previous effect is interrupted.
+ const a=base.paused?base:nativeNode(base.src);a.inUse=true;a.muted=false;a.volume=Number($('sfxVolume').value);a.currentTime=0;
+ a.onended=()=>{a.inUse=false;};
+ a.play().then(()=>{nativeAudio.last='合成音效 '+(i+1)+' 播放中';nativeStatus();}).catch(e=>{a.inUse=false;mediaError('合成音效',e);});
+}
+function nativeCelebration(){
+ if(!nativeAudio.music)nativeInit();
+ const a=nativeAudio.celebration;if(a.inUse)return;a.inUse=true;a.muted=false;a.volume=Number($('sfxVolume').value);a.currentTime=0;
+ a.play().catch(e=>mediaError('庆祝音效',e));
+}
+$('audioMode').onchange=e=>{
+ nativeMode=e.target.value==='native';
+ if(nativeAudio.music)nativeAudio.music.pause();
+ if(nativeAudio.celebration){nativeAudio.celebration.pause();nativeAudio.celebration.inUse=false;}
+ if(nativeAudio.voices)nativeAudio.voices.forEach(a=>a.pause());
+ if(audio.context){if(nativeMode)audio.context.suspend();else audio.context.resume();}
+ audioInit();if(celebrationActive)startCelebrationAudio();
+};
 function audioInit(){
+ if(nativeMode){nativeInit();return;}
  try {
   if(!audio.context){
    audio.context=new (window.AudioContext||window.webkitAudioContext)();
@@ -48,19 +100,21 @@ function flushMergeSounds(){
  }
 }
 function startCelebrationAudio(){
+ if(nativeMode){if(celebrationActive)nativeCelebration();return;}
  if(!celebrationActive||!audio.celebrationBuffer||audio.celebrationSource)return;
  const source=audio.context.createBufferSource();source.buffer=audio.celebrationBuffer;source.loop=true;source.connect(audio.sfxGain);source.start();audio.celebrationSource=source;
 }
 function stopCelebration(){
+ if(nativeAudio.celebration){nativeAudio.celebration.pause();nativeAudio.celebration.currentTime=0;nativeAudio.celebration.inUse=false;}
  celebrationActive=false;celebrationToken++;
  if(audio.celebrationSource){audio.celebrationSource.stop();audio.celebrationSource.disconnect();audio.celebrationSource=null;}
  $('confetti').style.display='none';
 }
-function playMerge(){mergeSoundQueue++;flushMergeSounds();}
+function playMerge(){if(nativeMode){nativeMerge();return;}mergeSoundQueue++;flushMergeSounds();}
 $('testSfx').onclick=()=>{audio.retryAfter=0;audioInit();playMerge();};
 $('musicVolume').value=cfg.musicVolume;$('sfxVolume').value=cfg.sfxVolume;
-$('musicVolume').oninput=e=>{if(audio.musicGain)audio.musicGain.gain.value=+e.target.value;};
-$('sfxVolume').oninput=e=>{if(audio.sfxGain)audio.sfxGain.gain.value=+e.target.value;};
+$('musicVolume').oninput=e=>{if(nativeAudio.music)nativeAudio.music.volume=+e.target.value;if(audio.musicGain)audio.musicGain.gain.value=+e.target.value;};
+$('sfxVolume').oninput=e=>{if(nativeAudio.celebration)nativeAudio.celebration.volume=+e.target.value;nativeAudio.voices.forEach(a=>a.volume=+e.target.value);if(audio.sfxGain)audio.sfxGain.gain.value=+e.target.value;};
 document.title=cfg.title;
 document.querySelector('h1').firstChild.textContent=cfg.title;
 $('best').textContent=best;
